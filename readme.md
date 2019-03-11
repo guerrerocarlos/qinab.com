@@ -5,6 +5,6 @@ This is just a very _alpha_ **proof of concept** for creating a super straight-f
 
 Works pretty well so far, this very readme is being written in it using [this url](https://qinab.com/guerrerocarlos/qinab.com/blob/master/readme.md) that can be used as [demo](https://qinab.com/guerrerocarlos/qinab.com/blob/master/readme.md):
 
-[https://qinab.com/guerrerocarlos/qinab.com/blob/master/readme.md](https://qinab.com/guerrerocarlos/qinab.com/blob/master/readme.md)  
+[https://qinab.com/guerrerocarlos/qinab.com/blob/master/readme.md](https://qinab.com/guerrerocarlos/qinab.com/blob/master/readme.md)
 
-Happy coding writting!
+Happy coding writing!
