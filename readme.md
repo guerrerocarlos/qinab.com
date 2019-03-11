@@ -7,4 +7,6 @@ Works pretty well so far, this very readme is being written in it using [this ur
 
 [https://qinab.com/guerrerocarlos/qinab.com/blob/master/readme.md](https://qinab.com/guerrerocarlos/qinab.com/blob/master/readme.md)
 
-Happy coding writing!
+Only made possible thanks to [https://yabwe.github.io/medium-editor/](https://yabwe.github.io/medium-editor/)
+
+Happy coding!
