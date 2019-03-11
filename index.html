@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Editor</title>
+    <meta name="description" content="Edit github files and commit in seconds." />
+    <meta property="og:title" content="QINAB = Qinab Is Not A Blog" />
+    <meta property="og:description" content="Edit github files and commit in seconds" />
+    <meta property="og:url" content="https://qinab.com/" />
+    <meta property="og:image" content="https://qinab.com/logo.png" />
+    <link rel=”shortcut icon” href="https://qinab.com/logo.ico" type=”image/x-icon” />
+
+    <link href="/index.css?v=5" rel="stylesheet" />
+    <link href="/default.css?v=4" rel="stylesheet" />
+    <link
+      href="https://netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/medium-editor@latest/dist/css/medium-editor.min.css"
+      type="text/css"
+      media="screen"
+      charset="utf-8"
+    />
+    <script src="//cdn.jsdelivr.net/npm/medium-editor@latest/dist/js/medium-editor.min.js"></script>
+
+    <link
+      href="https://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css"
+      rel="stylesheet"
+    />
+    <script src="/showdown.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/medium-editor-insert-plugin/2.5.0/css/medium-editor-insert-plugin-frontend.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/medium-editor-insert-plugin/2.5.0/css/medium-editor-insert-plugin.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/medium-editor/5.23.3/css/medium-editor.min.css"
+    />
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.12/handlebars.runtime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-sortable/0.9.13/jquery-sortable-min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery.ui.widget@1.10.3/jquery.ui.widget.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.iframe-transport/1.0.1/jquery.iframe-transport.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/blueimp-file-upload/9.28.0/js/jquery.fileupload.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-editor/5.23.3/js/medium-editor.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-editor-insert-plugin/2.5.0/js/medium-editor-insert-plugin.min.js"></script>
+    <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
+
+    <script src="/autolist.js?v=3"></script>
+    <script src="/octokit-rest.js?v=3"></script>
+    <script src="/commitFile.js?v=3"></script>
+  </head>
+  <body>
+    <div id="topbar" class="center">
+      <div id="path" class="inline"></div>
+      <div id="github" class="inline" style="display: none">
+        <div id="user" class="center inline user"></div>
+        <div id="commit" class="center inline">
+          <input
+            id="commitMessage"
+            type="text"
+            placeholder="commit message"
+            style="display: none"
+          />
+          <button id="commitButton" style="display: none" disabled>
+            Commit
+          </button>
+          <button onclick="logout()">
+            Logout
+          </button>
+        </div>
+      </div>
+      <div id="login" style="display: none">
+        <button id="github-button" onclick="signin()">
+          <i class="fa fa-github"></i> Sign in to edit
+        </button>
+      </div>
+    </div>
+    <div id="container">
+      <div id="filetree" class="filetree" style="display:none;"></div>
+      <div id="editable" class="editable"></div>
+    </div>
+    <script>
+      var path = document.location.pathname.split("/");
+      path.shift();
+      if (path.length > 0 && path[path.length - 1].length === 0) {
+        path.pop();
+      }
+      console.log("path", path);
+      var converter = new showdown.Converter();
+      var turndownService = new TurndownService();
+      var octokit = new Octokit({});
+      var userData;
+
+      function signin() {
+        document.getElementById("github-button").innerHTML = "Signin in...";
+        window.location.href = "https://auth.qinab.com/auth/github";
+      }
+
+      function logout() {
+        window.location.href = "https://auth.qinab.com/logout";
+      }
+
+      if (path.length === 0) {
+        // path = [
+        //   "berserktech",
+        //   "ideas",
+        //   "blob",
+        //   "master",
+        //   "meta",
+        //   "manifesto",
+        //   "README.md"
+        // ];
+        path = [
+          "guerrerocarlos",
+          "blog",
+          "blob",
+          "master",
+          "Medium-meets-github.md"
+        ];
+      }
+      console.log("path", path);
+
+      var owner = path[0];
+      var repo = path[1];
+      var branch = path[3];
+
+      console.log("path", path);
+
+      var githubRequest = { owner, repo, path: "/" };
+      if (path.length > 2) {
+        githubRequest["ref"] = branch;
+        githubRequest["path"] = path.slice(4).join("/");
+      }
+
+      function commitFile() {
+        var fullPath = githubRequest["path"];
+        var data;
+        if (fullPath.indexOf(".md") === fullPath.length - 3) {
+          data = turndownService.turndown(editable);
+        } else {
+          data = document.getElementById("editable").innerHTML;
+        }
+        console.log("Commit!", data);
+        commitBlob(
+          octokit,
+          branch,
+          githubRequest["path"],
+          data[data.length - 1] === "+" ? data.slice(0, data.length - 1) : data,
+          document.getElementById("commitMessage").value,
+          document.getElementById("commitButton")
+        );
+      }
+
+      function enableCommitting() {
+        document.getElementById("commitButton").disabled = "";
+        document.getElementById("commitButton").onclick = commitFile;
+        document.getElementById("commitMessage").style.display = "";
+        document.getElementById("commitButton").style.display = "";
+        // document.getElementById('container').addEventListener("keydown", function(evt) {
+        //     console.log('evt', evt)
+        // });
+      }
+
+      function enableEditor() {
+        var autolist = new AutoList();
+        var editor = new MediumEditor(".editable", {
+          autoLink: true,
+          buttonLabels: "fontawesome",
+          extensions: {
+            autolist: autolist
+          },
+          toolbar: {
+            buttons: [
+              "h1",
+              "h2",
+              "bold",
+              "italic",
+              "strikethrough",
+              "superscript",
+              "image",
+              "quote",
+              "createLink",
+              "unorderedlist",
+              "orderedlist",
+              "html",
+              "pre"
+            ]
+          }
+        });
+        console.log("editor", editor);
+        // editor.extensions.button['pre'].contentFA = '<i class="fa fa-code fa-lg"></i>'
+
+        // $(".editable").mediumInsert({ editor: editor });
+
+        if (userData.sso.github.username === owner) {
+          enableCommitting();
+        } else {
+          octokit.orgs
+            .getMembership({
+              org: owner,
+              username: userData.sso.github.username
+            })
+            .then(membershipResult => {
+              console.log("membershipResult", membershipResult);
+              enableCommitting();
+            })
+            .catch(err => {
+              console.log("not member...", err);
+            });
+        }
+      }
+
+      function fetchContent() {
+        octokit.repos
+          .getContents(githubRequest)
+          .then(fileData => {
+            console.log("fileData", fileData);
+            if (fileData.data.type === "file") {
+              var content = window.atob(fileData.data.content);
+              fetch(fileData.data.download_url+'?cacheKiller='+new Date().getTime(), {})
+                .then(function(response) {
+                  console.log("response", response);
+                  return response.text();
+                })
+                .then(function(data) {
+                  document.getElementById("editable").innerHTML =
+                    fileData.data.name.indexOf(".md") ===
+                    fileData.data.name.length - 3
+                      ? converter.makeHtml(data)
+                      : content;
+                  document.getElementById("commitMessage").style.display = "";
+                  document.getElementById("commitButton").style.display = "";
+                  enableEditor();
+                });
+            } else {
+              document.getElementById("editable").style.display = "none";
+              document.getElementById("filetree").style.display = "";
+              var filetree = "<table class='filetreetable'>";
+              document.getElementById("editable").innerHTML = fileData.data.map(
+                d => {
+                  filetree +=
+                    "<tr><th class='filetreename'>" +
+                    (d.type === "file"
+                      ? '<i class="fa fa-file"></i> '
+                      : '<i style="margin-left: -3px;" class="fa fa-folder"></i>  ') +
+                    "<a style='text-decoration: none;' href='" +
+                    d.html_url.replace("github.com", "qinab.com") +
+                    "'>" +
+                    (d.type === "file" ? "" : "<i>") +
+                    d.name +
+                    (d.type === "file" ? "" : "/</i>") +
+                    "</a></th>";
+                  if (d.type === "file") {
+                    var size = prettyBytes(d.size);
+                    filetree +=
+                      "<th class='treesize'>" +
+                      size.size +
+                      " " +
+                      size.unit +
+                      "</th></tr>";
+                  } else {
+                    filetree += "<th></th></tr>";
+                  }
+                }
+              );
+              filetree += "</table>";
+
+              document.getElementById("filetree").innerHTML = filetree;
+            }
+          })
+          .catch(err => {
+            console.log("Error:", err);
+            enableEditor();
+          })
+          .then(() => {
+            // enableEditor();
+          });
+      }
+
+      function gotUserData(data) {
+        document.getElementById("user").innerHTML =
+          '<img src="' + data.sso.github.photos[0].value + '&s=100">';
+        // commitBlob(octokit)
+      }
+
+      fetch("https://auth.qinab.com/user.json", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        credentials: "include",
+        cache: "no-cache"
+      })
+        .then(function(response) {
+          return response.json();
+        })
+        .then(function(data) {
+          console.log("data = ", data);
+          userData = data;
+          if (data.authenticated) {
+            octokit = new Octokit({
+              auth: "token " + data.__sso.github.accessToken
+            });
+            document.getElementById("github").style.display = "";
+            document.getElementById("login").style.display = "none";
+            gotUserData(data);
+          } else {
+            document.getElementById("github").style.display = "none";
+            document.getElementById("login").style.display = "";
+          }
+          fetchContent();
+        })
+        .catch(function(err) {
+          console.error(err);
+        });
+
+      document.getElementById("path").innerHTML = path
+        .map(function(part, i) {
+          return i != 2 && i != 3
+            ? '<a href="' +
+                (i == 0 || i==path.length-1? "https://github.com/" : "https://qinab.com/") +
+                path.slice(0, i + 1).join("/") +
+                '">' +
+                part +
+                "</a>"
+            : part;
+        })
+        .join(" / ");
+
+      var saveIn15SecondsTimeout;
+
+      function prettyBytes(size) {
+        var unit = ["Bytes", "kB", "MB", "GB", "TB", "PB", "EB"];
+        while (size > 1024) {
+          size = size / 1024;
+          unit.shift();
+        }
+        return { size: size.toFixed(0), unit: unit.shift() };
+      }
+    </script>
+  </body>
+</html>
