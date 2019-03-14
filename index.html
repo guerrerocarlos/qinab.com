@@ -3,14 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <title>Editor</title>
-    <meta name="description" content="Edit github files and commit in seconds." />
+    <meta
+      name="description"
+      content="Edit github files and commit in seconds."
+    />
     <meta property="og:title" content="QINAB = Qinab Is Not A Blog" />
-    <meta property="og:description" content="Edit github files and commit in seconds" />
+    <meta
+      property="og:description"
+      content="Edit github files and commit in seconds"
+    />
     <meta property="og:url" content="https://qinab.com/" />
     <meta property="og:image" content="https://qinab.com/logo.png" />
-    <link rel=”shortcut icon” href="https://qinab.com/logo.ico" type=”image/x-icon” />
+    <link rel=”shortcut icon” href="https://qinab.com/logo.ico"
+    type=”image/x-icon” />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 
-    <link href="/index.css?v=6" rel="stylesheet" />
+    <link href="/index.css?v=9" rel="stylesheet" />
     <link href="/default.css?v=4" rel="stylesheet" />
     <link
       href="https://netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.css"
@@ -54,7 +62,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-editor/5.23.3/js/medium-editor.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-editor-insert-plugin/2.5.0/js/medium-editor-insert-plugin.min.js"></script>
     <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
+    <script src="https://unpkg.com/turndown-plugin-gfm/dist/turndown-plugin-gfm.js"></script>
 
+    <script src="/markdownEngine.js?v=3"></script>
     <script src="/autolist.js?v=3"></script>
     <script src="/octokit-rest.js?v=3"></script>
     <script src="/commitFile.js?v=3"></script>
@@ -97,7 +107,10 @@
       }
       console.log("path", path);
       var converter = new showdown.Converter();
+      var gfm = turndownPluginGfm.gfm;
       var turndownService = new TurndownService();
+      turndownService.use(gfm);
+
       var octokit = new Octokit({});
       var userData;
 
@@ -127,6 +140,15 @@
           "master",
           "Medium-meets-github.md"
         ];
+        document.location.pathname = path.join('/')
+        // path = [
+        //   "guerrerocarlos",
+        //   "walter.bio",
+        //   "blob",
+        //   "master",
+        //   "_posts",
+        //   "2017-06-21-terraform-compile-docker.md"
+        // ];
       }
       console.log("path", path);
 
@@ -142,23 +164,34 @@
         githubRequest["path"] = path.slice(4).join("/");
       }
 
+      function transformData(fullPath) {
+        return new Promise((success, reject) => {
+          if (fullPath.indexOf(".md") === fullPath.length - 3) {
+            document
+              .html2md(document.getElementById("editable").innerHTML)
+              .then(success);
+          } else {
+            success(document.getElementById("editable").innerHTML);
+          }
+        });
+      }
+
       function commitFile() {
         var fullPath = githubRequest["path"];
-        var data;
-        if (fullPath.indexOf(".md") === fullPath.length - 3) {
-          data = turndownService.turndown(editable);
-        } else {
-          data = document.getElementById("editable").innerHTML;
-        }
-        console.log("Commit!", data);
-        commitBlob(
-          octokit,
-          branch,
-          githubRequest["path"],
-          data[data.length - 1] === "+" ? data.slice(0, data.length - 1) : data,
-          document.getElementById("commitMessage").value,
-          document.getElementById("commitButton")
-        );
+        transformData(fullPath).then(data => {
+          console.log("got data", data);
+          commitBlob(
+            octokit,
+            branch,
+            githubRequest["path"],
+            data[data.length - 1] === "+"
+              ? data.slice(0, data.length - 1)
+              : data,
+            document.getElementById("commitMessage").value,
+            document.getElementById("commitButton")
+          );
+          console.log("Commit!", data);
+        });
       }
 
       function enableCommitting() {
@@ -226,20 +259,38 @@
             console.log("fileData", fileData);
             if (fileData.data.type === "file") {
               var content = window.atob(fileData.data.content);
-              fetch(fileData.data.download_url+'?cacheKiller='+new Date().getTime(), {})
+              fetch(
+                fileData.data.download_url +
+                  "?cacheKiller=" +
+                  new Date().getTime(),
+                {}
+              )
                 .then(function(response) {
-                  console.log("response", response);
                   return response.text();
                 })
                 .then(function(data) {
-                  document.getElementById("editable").innerHTML =
+                  console.log("data", data);
+                  if (
                     fileData.data.name.indexOf(".md") ===
                     fileData.data.name.length - 3
-                      ? converter.makeHtml(data)
-                      : content;
+                  ) {
+                    console.log("document.md2html", document.md2html);
+                    document.md2html(data).then(htmlBody => {
+                      console.log('htmlBody', htmlBody)
+                      document.getElementById("editable").innerHTML = htmlBody;
+                      enableEditor();
+                    });
+                  } else {
+                    document.getElementById("editable").innerHTML = data;
+                    enableEditor();
+                  }
+                  // document.getElementById("editable").innerHTML =
+                  //   fileData.data.name.indexOf(".md") ===
+                  //   fileData.data.name.length - 3
+                  //     ? document.md2html(data)
+                  //     : data;
                   document.getElementById("commitMessage").style.display = "";
                   document.getElementById("commitButton").style.display = "";
-                  enableEditor();
                 });
             } else {
               document.getElementById("editable").style.display = "none";
@@ -327,7 +378,9 @@
         .map(function(part, i) {
           return i != 2 && i != 3
             ? '<a href="' +
-                (i == 0 || i==path.length-1? "https://github.com/" : "https://qinab.com/") +
+                (i == 0 || i == path.length - 1
+                  ? "https://github.com/"
+                  : "https://qinab.com/") +
                 path.slice(0, i + 1).join("/") +
                 '">' +
                 part +
