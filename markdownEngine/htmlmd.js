@@ -11,7 +11,7 @@ document.md2html = function(str) {
     unified()
       .use(markdown, { commonmark: true })
       .use(customPlugin)
-      .use(remark2html)
+      .use(remark2html, { commonmark: true })
       .process(str)
       .then(result => {
         success(result.contents);
