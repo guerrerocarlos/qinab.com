@@ -67,6 +67,7 @@
     <script src="/markdownEngine.js?v=3"></script>
     <script src="/autolist.js?v=3"></script>
     <script src="/octokit-rest.js?v=3"></script>
+    <script src="/cheerio.js?v=3"></script>
     <script src="/commitFile.js?v=3"></script>
   </head>
   <body>
@@ -101,6 +102,8 @@
     </div>
     <script>
       var path = document.location.pathname.split("/");
+      var originalHtml;
+      var CNAME 
       path.shift();
       if (path.length > 0 && path[path.length - 1].length === 0) {
         path.pop();
@@ -124,15 +127,6 @@
       }
 
       if (path.length === 0) {
-        // path = [
-        //   "berserktech",
-        //   "ideas",
-        //   "blob",
-        //   "master",
-        //   "meta",
-        //   "manifesto",
-        //   "README.md"
-        // ];
         path = [
           "guerrerocarlos",
           "blog",
@@ -140,15 +134,11 @@
           "master",
           "Medium-meets-github.md"
         ];
-        document.location.pathname = path.join('/')
-        // path = [
-        //   "guerrerocarlos",
-        //   "walter.bio",
-        //   "blob",
-        //   "master",
-        //   "_posts",
-        //   "2017-06-21-terraform-compile-docker.md"
-        // ];
+        // path = "fonemaplus/ruso-facil.com/blob/master/index.html".split(
+        //   "/"
+        // );
+        // path = 'guerrerocarlos/blog.carlosguerrero.com/blob/master/_posts/2019-01-20-quick-start-guide.md'.split('/')
+        // document.location.pathname = path.join('/')
       }
       console.log("path", path);
 
@@ -171,7 +161,16 @@
               .html2md(document.getElementById("editable").innerHTML)
               .then(success);
           } else {
-            success(document.getElementById("editable").innerHTML);
+            var newHTML = document.getElementById("editable").innerHTML;
+
+            if (originalHtml) {
+              var N = document.cheerio.load(originalHtml);
+              N("main").html(newHTML);
+            }
+
+            // console.log('commit!:', N.html().replace(/https:\/\/ruso-facil.com/g, ''))
+
+            success(N.html().replace(new RegExp(`https:\/\/${CNAME}`, 'g'), ""));
           }
         });
       }
@@ -234,11 +233,13 @@
 
         // $(".editable").mediumInsert({ editor: editor });
 
+        console.log('owner', owner)
+
         if (userData.sso.github.username === owner) {
           enableCommitting();
         } else {
           octokit.orgs
-            .getMembership({
+            .checkMembership({
               org: owner,
               username: userData.sso.github.username
             })
@@ -259,10 +260,11 @@
             console.log("fileData", fileData);
             if (fileData.data.type === "file") {
               var content = window.atob(fileData.data.content);
+
+              // console.log('data.content', content)
+
               fetch(
-                fileData.data.download_url +
-                  "?cacheKiller=" +
-                  new Date().getTime(),
+                fileData.data.download_url,
                 {}
               )
                 .then(function(response) {
@@ -274,15 +276,65 @@
                     fileData.data.name.indexOf(".md") ===
                     fileData.data.name.length - 3
                   ) {
+                    document
+                      .getElementById("container")
+                      .classList.add("markdowncontainer");
                     console.log("document.md2html", document.md2html);
                     document.md2html(data).then(htmlBody => {
-                      console.log('htmlBody', htmlBody)
+                      console.log("htmlBody", htmlBody);
                       document.getElementById("editable").innerHTML = htmlBody;
                       enableEditor();
                     });
                   } else {
-                    document.getElementById("editable").innerHTML = data;
-                    enableEditor();
+                    originalHtml = data;
+
+                    var C = document.cheerio.load(data);
+                    var cnameRequest = Object.assign({}, githubRequest);
+                    cnameRequest.path = "CNAME";
+
+                    octokit.repos
+                      .getContents(cnameRequest)
+                      .then(CNAMEfileData => {
+                        console.log("CNAMEfileData", CNAMEfileData);
+
+                        return window.atob(CNAMEfileData.data.content)
+
+                      }).catch(function(err) {
+                        console.log('err', err)
+                        return undefined
+                      }).then(function(cname) {
+                        CNAME = cname
+                        console.log('cname', cname)
+                        var headers = C("head").html();
+                        var main = C("main").html();
+                        if (cname && headers && main ) {
+                          headers = headers.replace(
+                            /href="\//g,
+                            `href="https://${cname}/`
+                          );
+                          main = main.replace(
+                            /src="\//g,
+                            `src="https://${cname}/`
+                          );
+                        } else {
+                          main = C.html()
+                        }
+
+                        document.getElementsByTagName("head")[0].innerHTML =
+                          headers +
+                          document.getElementsByTagName("head")[0].innerHTML;
+                        document.getElementById("editable").innerHTML = main;
+                        enableEditor();
+                      })
+
+                    // console.log('headers:', headers)
+
+                    // var scripts = C('script').toArray()
+                    // C('script').remove()
+
+                    // console.log('scripts', scripts)
+
+                    // console.log('cheerio:', C('body').html())
                   }
                   // document.getElementById("editable").innerHTML =
                   //   fileData.data.name.indexOf(".md") ===

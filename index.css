@@ -35,7 +35,7 @@ body {
   text-align: center;
 }
 
-#container {
+.markdown {
   width: 960px;
   margin: 90px auto;
 }
@@ -92,7 +92,7 @@ blockquote {
   color: #555;
 }
 
-#container {
+.markdowncontainer {
   width: 960px;
   margin: 30px auto;
 }

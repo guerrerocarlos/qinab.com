@@ -6,6 +6,8 @@ async function commitBlob(
   commitMessage,
   button
 ) {
+  console.log('commitBlob:', { branch, path });
+
   if (button) {
     button.disabled = "yeah";
     button.innerHTML = "...";
@@ -30,6 +32,8 @@ async function commitBlob(
     });
     console.log("masterCommit", masterCommit);
     var headSha = masterCommit.data.object.sha;
+    console.log("- headSha:", headSha);
+
 
     button.innerHTML = "heads/" + branch;
 
@@ -38,6 +42,9 @@ async function commitBlob(
       repo,
       commit_sha: headSha
     });
+
+    console.log("- headCommit:", headCommit);
+
 
     button.innerHTML = "head:" + headSha.slice(0, 10);
 
@@ -48,9 +55,11 @@ async function commitBlob(
       encoding: "utf-8"
     });
 
+
+
     button.innerHTML = "blob:" + blobInfo.data.sha.slice(0, 10);
 
-    console.log("blobInfo", JSON.stringify(blobInfo, null, 2));
+    console.log("-- blobInfo", JSON.stringify(blobInfo, null, 2));
 
     const newTree = [
       {
@@ -101,6 +110,7 @@ async function commitBlob(
     delete updateRefResult["headers"];
     console.log("updateRefResult", updateRefResult);
   } catch (err) {
+    console.log("commit err", err);
     button.innerHTML = "Failed!";
     setTimeout(() => {
       button.innerHTML = "Commit";
