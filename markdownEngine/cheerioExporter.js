@@ -1,0 +1,2 @@
+document.cheerio = require('cheerio')
+

@@ -31,7 +31,7 @@
       media="screen"
       charset="utf-8"
     />
-    <script src="//cdn.jsdelivr.net/npm/medium-editor@latest/dist/js/medium-editor.min.js"></script>
+    <script src="/medium-editor.js"></script>
 
     <link
       href="https://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css"
@@ -46,10 +46,10 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/medium-editor-insert-plugin/2.5.0/css/medium-editor-insert-plugin.min.css"
     />
-    <link
+    <!-- <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/medium-editor/5.23.3/css/medium-editor.min.css"
-    />
+    /> -->
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
@@ -59,7 +59,7 @@
     <script src="https://cdn.jsdelivr.net/npm/jquery.ui.widget@1.10.3/jquery.ui.widget.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.iframe-transport/1.0.1/jquery.iframe-transport.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/blueimp-file-upload/9.28.0/js/jquery.fileupload.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-editor/5.23.3/js/medium-editor.min.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-editor/5.23.3/js/medium-editor.js"></script> -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-editor-insert-plugin/2.5.0/js/medium-editor-insert-plugin.min.js"></script>
     <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
     <script src="https://unpkg.com/turndown-plugin-gfm/dist/turndown-plugin-gfm.js"></script>
@@ -102,8 +102,8 @@
     </div>
     <script>
       var path = document.location.pathname.split("/");
-      var originalHtml;
-      var CNAME 
+      var originalHtml = "";
+      var CNAME;
       path.shift();
       if (path.length > 0 && path[path.length - 1].length === 0) {
         path.pop();
@@ -134,7 +134,7 @@
           "master",
           "Medium-meets-github.md"
         ];
-        // path = "fonemaplus/ruso-facil.com/blob/master/index.html".split(
+        // path = "fonemaplus/ruso-facil.com/blob/master/index.html.html".split(
         //   "/"
         // );
         // path = 'guerrerocarlos/blog.carlosguerrero.com/blob/master/_posts/2019-01-20-quick-start-guide.md'.split('/')
@@ -163,14 +163,22 @@
           } else {
             var newHTML = document.getElementById("editable").innerHTML;
 
-            if (originalHtml) {
-              var N = document.cheerio.load(originalHtml);
+            console.log("originalHtml", originalHtml);
+            console.log("newHTML", newHTML);
+
+            var N = document.cheerio.load(originalHtml);
+            console.log('N("main")', N("main"));
+
+            if (N("main").length > 0) {
               N("main").html(newHTML);
+              success(
+                N.html().replace(new RegExp(`https:\/\/${CNAME}`, "g"), "")
+              );
+            } else {
+              success(newHTML);
             }
 
             // console.log('commit!:', N.html().replace(/https:\/\/ruso-facil.com/g, ''))
-
-            success(N.html().replace(new RegExp(`https:\/\/${CNAME}`, 'g'), ""));
           }
         });
       }
@@ -203,6 +211,159 @@
         // });
       }
 
+      var CLASS_DRAG_OVER = "medium-editor-dragover";
+
+      function clearClassNames(element) {
+        var editable = MediumEditor.util.getContainerEditorElement(element),
+          existing = Array.prototype.slice.call(
+            editable.parentElement.querySelectorAll("." + CLASS_DRAG_OVER)
+          );
+
+        existing.forEach(function(el) {
+          el.classList.remove(CLASS_DRAG_OVER);
+        });
+      }
+
+      var ImageDraggingDropGithub = MediumEditor.Extension.extend({
+        name: "imageDragging",
+
+        allowedTypes: ["image"],
+
+        init: function() {
+          console.log("ImageDraggingDropGithub init");
+          MediumEditor.Extension.prototype.init.apply(this, arguments);
+
+          this.subscribe("editableDrag", this.handleDrag.bind(this));
+          this.subscribe("editableDrop", this.handleDrop.bind(this));
+        },
+
+        handleDrag: function(event) {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "copy";
+
+          var target = event.target.classList
+            ? event.target
+            : event.target.parentElement;
+
+          // Ensure the class gets removed from anything that had it before
+          clearClassNames(target);
+
+          if (event.type === "dragover") {
+            target.classList.add(CLASS_DRAG_OVER);
+          }
+        },
+
+        handleDrop: function(event) {
+          // Prevent file from opening in the current window
+          event.preventDefault();
+          event.stopPropagation();
+          // Select the dropping target, and set the selection to the end of the target
+          // https://github.com/yabwe/medium-editor/issues/980
+          this.base.selectElement(event.target);
+          var selection = this.base.exportSelection();
+          selection.start = selection.end;
+          this.base.importSelection(selection);
+          // IE9 does not support the File API, so prevent file from opening in the window
+          // but also don't try to actually get the file
+          if (event.dataTransfer.files) {
+            Array.prototype.slice
+              .call(event.dataTransfer.files)
+              .forEach(function(file) {
+                if (this.isAllowedFile(file)) {
+                  console.log("file", file);
+                  if (file.type.match("image")) {
+                    this.saveToGithub(file);
+
+                    // this.insertImageFile(file);
+                  }
+                }
+              }, this);
+          }
+
+          // Make sure we remove our class from everything
+          clearClassNames(event.target);
+        },
+
+        isAllowedFile: function(file) {
+          return this.allowedTypes.some(function(fileType) {
+            return !!file.type.match(fileType);
+          });
+        },
+
+        saveToGithub: function(file) {
+          file.name;
+
+          if (typeof FileReader !== "function") {
+            return;
+          }
+          var fileReader = new FileReader();
+          fileReader.readAsDataURL(file);
+
+          // attach the onload event handler, makes it easier to listen in with jasmine
+          fileReader.addEventListener(
+            "load",
+            async function(e) {
+              console.log("loaded image:", e);
+              console.log(
+                "e.target.result.split(",
+                ")[1]",
+                e.target.result.split(",")[1]
+              );
+              // console.log("e.target.result.toString('base64'):", new e.target.result.toString('base64'));
+
+              var imageId = 'uploaded-img-'+parseInt(Math.random()*1000);
+
+              var addImageElement = this.document.createElement("img");
+              addImageElement.src = "/loader_gifs/loader3.gif";
+              addImageElement.id = imageId
+              MediumEditor.util.insertHTMLCommand(
+                this.document,
+                addImageElement.outerHTML
+              );
+
+              await commitBlob(
+                octokit,
+                branch,
+                "images/" + file.name,
+                e.target.result.split(",")[1],
+                "Add image " + file.name,
+                document.getElementById("commitButton"),
+                "base64"
+              );
+
+
+              setTimeout(() => {
+                document.getElementById(imageId).src = "/loader_gifs/loader0.gif";;
+              }, 3000);
+              setTimeout(() => {
+                document.getElementById(imageId).src = "https://" + CNAME + "/images/" + file.name;
+              }, 3000 + 8000);
+            }.bind(this)
+          );
+        },
+
+        insertImageFile: function(file) {
+          if (typeof FileReader !== "function") {
+            return;
+          }
+          var fileReader = new FileReader();
+          fileReader.readAsDataURL(file);
+
+          // attach the onload event handler, makes it easier to listen in with jasmine
+          fileReader.addEventListener(
+            "load",
+            function(e) {
+              var addImageElement = this.document.createElement("img");
+              addImageElement.src = e.target.result;
+              MediumEditor.util.insertHTMLCommand(
+                this.document,
+                addImageElement.outerHTML
+              );
+            }.bind(this)
+          );
+        }
+      });
+
       function enableEditor() {
         var autolist = new AutoList();
         var editor = new MediumEditor(".editable", {
@@ -211,6 +372,20 @@
           extensions: {
             autolist: autolist
           },
+          extensions: {
+            imageDragging: new ImageDraggingDropGithub()
+          },
+          // fileDragging: {
+          //   allowedTypes: ['jpg', 'png']
+          // },
+          // paste: {
+          //   // forcePlainText: false
+          //   // cleanPastedHTML: false,
+          //   // cleanReplacements: [],
+          //   // cleanAttrs: ["class", "style", "dir"],
+          //   // cleanTags: ["meta"],
+          //   // unwrapTags: []
+          // },
           toolbar: {
             buttons: [
               "h1",
@@ -228,12 +403,14 @@
             ]
           }
         });
-        console.log("editor", editor);
+
+        // MediumEditor.extensions.imageDragging = ImageDraggingDropGithub
+        // console.log("editor", editor);
         // editor.extensions.button['pre'].contentFA = '<i class="fa fa-code fa-lg"></i>'
 
         // $(".editable").mediumInsert({ editor: editor });
 
-        console.log('owner', owner)
+        // console.log("owner", owner);
 
         if (userData.sso.github.username === owner) {
           enableCommitting();
@@ -253,25 +430,56 @@
         }
       }
 
+      function b64DecodeUnicode(str) {
+        // Going backwards: from bytestream, to percent-encoding, to original string.
+        return decodeURIComponent(
+          atob(str)
+            .split("")
+            .map(function(c) {
+              return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+            })
+            .join("")
+        );
+      }
+
       function fetchContent() {
+        // octokit.git
+        //   .getTree({
+        //     owner,
+        //     repo
+        //   })
+        //   .then(tree => {
+        //     console.log("TREE:", tree);
+        //   });
+
         octokit.repos
           .getContents(githubRequest)
           .then(fileData => {
             console.log("fileData", fileData);
             if (fileData.data.type === "file") {
-              var content = window.atob(fileData.data.content);
+              var content = b64DecodeUnicode(fileData.data.content);
 
-              // console.log('data.content', content)
+              console.log("data.content", content);
 
-              fetch(
-                fileData.data.download_url,
-                {}
-              )
+              fetch(fileData.data.download_url, {})
                 .then(function(response) {
-                  return response.text();
+                  console.log("response", response);
+                  if (response.status === 404) {
+                    return content;
+                  } else {
+                    return response.text();
+                  }
                 })
                 .then(function(data) {
-                  console.log("data", data);
+                  // console.log("data", data);
+                  // console.log("not found?", data.indexOf('404: (Not Found)') > -1);
+
+                  // if(data.indexOf('404') === 0) {
+                  //   data = content
+                  // }
+
+                  console.log("data::", data);
+
                   if (
                     fileData.data.name.indexOf(".md") ===
                     fileData.data.name.length - 3
@@ -297,17 +505,18 @@
                       .then(CNAMEfileData => {
                         console.log("CNAMEfileData", CNAMEfileData);
 
-                        return window.atob(CNAMEfileData.data.content)
-
-                      }).catch(function(err) {
-                        console.log('err', err)
-                        return undefined
-                      }).then(function(cname) {
-                        CNAME = cname
-                        console.log('cname', cname)
+                        return window.atob(CNAMEfileData.data.content);
+                      })
+                      .catch(function(err) {
+                        console.log("err", err);
+                        return undefined;
+                      })
+                      .then(function(cname) {
+                        CNAME = cname;
+                        console.log("cname", cname);
                         var headers = C("head").html();
                         var main = C("main").html();
-                        if (cname && headers && main ) {
+                        if (cname && headers && main) {
                           headers = headers.replace(
                             /href="\//g,
                             `href="https://${cname}/`
@@ -317,7 +526,7 @@
                             `src="https://${cname}/`
                           );
                         } else {
-                          main = C.html()
+                          main = C.html();
                         }
 
                         document.getElementsByTagName("head")[0].innerHTML =
@@ -325,7 +534,7 @@
                           document.getElementsByTagName("head")[0].innerHTML;
                         document.getElementById("editable").innerHTML = main;
                         enableEditor();
-                      })
+                      });
 
                     // console.log('headers:', headers)
 
