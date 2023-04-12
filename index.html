@@ -85,9 +85,7 @@
           <button id="commitButton" style="display: none" disabled>
             Commit
           </button>
-          <button onclick="logout()">
-            Logout
-          </button>
+          <button onclick="logout()">Logout</button>
         </div>
       </div>
       <div id="login" style="display: none">
@@ -97,10 +95,11 @@
       </div>
     </div>
     <div id="container">
-      <div id="filetree" class="filetree" style="display:none;"></div>
+      <div id="filetree" class="filetree" style="display: none"></div>
       <div id="editable" class="editable"></div>
     </div>
     <script>
+      var metadataHolder = "";
       var path = document.location.pathname.split("/");
       var originalHtml = "";
       var CNAME;
@@ -132,9 +131,10 @@
           "blog",
           "blob",
           "master",
-          "Medium-meets-github.md"
+          "Medium-meets-github.md",
         ];
-        // path = "fonemaplus/ruso-facil.com/blob/master/index.html.html".split(
+
+        // path = "fonemaplus/idiomasconliza.com/blob/www/public/index.html".split(
         //   "/"
         // );
         // path = 'guerrerocarlos/blog.carlosguerrero.com/blob/master/_posts/2019-01-20-quick-start-guide.md'.split('/')
@@ -185,8 +185,11 @@
 
       function commitFile() {
         var fullPath = githubRequest["path"];
-        transformData(fullPath).then(data => {
+        transformData(fullPath).then((data) => {
           console.log("got data", data);
+          if (metadataHolder.length > 0) {
+            data = [medatadataHolder, data].join("---\n");
+          }
           commitBlob(
             octokit,
             branch,
@@ -219,7 +222,7 @@
             editable.parentElement.querySelectorAll("." + CLASS_DRAG_OVER)
           );
 
-        existing.forEach(function(el) {
+        existing.forEach(function (el) {
           el.classList.remove(CLASS_DRAG_OVER);
         });
       }
@@ -229,7 +232,7 @@
 
         allowedTypes: ["image"],
 
-        init: function() {
+        init: function () {
           console.log("ImageDraggingDropGithub init");
           MediumEditor.Extension.prototype.init.apply(this, arguments);
 
@@ -237,7 +240,7 @@
           this.subscribe("editableDrop", this.handleDrop.bind(this));
         },
 
-        handleDrag: function(event) {
+        handleDrag: function (event) {
           event.preventDefault();
           event.dataTransfer.dropEffect = "copy";
 
@@ -253,7 +256,7 @@
           }
         },
 
-        handleDrop: function(event) {
+        handleDrop: function (event) {
           // Prevent file from opening in the current window
           event.preventDefault();
           event.stopPropagation();
@@ -268,7 +271,7 @@
           if (event.dataTransfer.files) {
             Array.prototype.slice
               .call(event.dataTransfer.files)
-              .forEach(function(file) {
+              .forEach(function (file) {
                 if (this.isAllowedFile(file)) {
                   console.log("file", file);
                   if (file.type.match("image")) {
@@ -284,13 +287,13 @@
           clearClassNames(event.target);
         },
 
-        isAllowedFile: function(file) {
-          return this.allowedTypes.some(function(fileType) {
+        isAllowedFile: function (file) {
+          return this.allowedTypes.some(function (fileType) {
             return !!file.type.match(fileType);
           });
         },
 
-        saveToGithub: function(file) {
+        saveToGithub: function (file) {
           file.name;
 
           if (typeof FileReader !== "function") {
@@ -302,7 +305,7 @@
           // attach the onload event handler, makes it easier to listen in with jasmine
           fileReader.addEventListener(
             "load",
-            async function(e) {
+            async function (e) {
               console.log("loaded image:", e);
               console.log(
                 "e.target.result.split(",
@@ -311,11 +314,11 @@
               );
               // console.log("e.target.result.toString('base64'):", new e.target.result.toString('base64'));
 
-              var imageId = 'uploaded-img-'+parseInt(Math.random()*1000);
+              var imageId = "uploaded-img-" + parseInt(Math.random() * 1000);
 
               var addImageElement = this.document.createElement("img");
               addImageElement.src = "/loader_gifs/loader3.gif";
-              addImageElement.id = imageId
+              addImageElement.id = imageId;
               MediumEditor.util.insertHTMLCommand(
                 this.document,
                 addImageElement.outerHTML
@@ -331,18 +334,19 @@
                 "base64"
               );
 
-
               setTimeout(() => {
-                document.getElementById(imageId).src = "/loader_gifs/loader0.gif";;
+                document.getElementById(imageId).src =
+                  "/loader_gifs/loader0.gif";
               }, 3000);
               setTimeout(() => {
-                document.getElementById(imageId).src = "https://" + CNAME + "/images/" + file.name;
+                document.getElementById(imageId).src =
+                  "https://" + CNAME + "/images/" + file.name;
               }, 3000 + 8000);
             }.bind(this)
           );
         },
 
-        insertImageFile: function(file) {
+        insertImageFile: function (file) {
           if (typeof FileReader !== "function") {
             return;
           }
@@ -352,7 +356,7 @@
           // attach the onload event handler, makes it easier to listen in with jasmine
           fileReader.addEventListener(
             "load",
-            function(e) {
+            function (e) {
               var addImageElement = this.document.createElement("img");
               addImageElement.src = e.target.result;
               MediumEditor.util.insertHTMLCommand(
@@ -361,7 +365,7 @@
               );
             }.bind(this)
           );
-        }
+        },
       });
 
       function enableEditor() {
@@ -370,10 +374,10 @@
           // autoLink: true,
           buttonLabels: "fontawesome",
           extensions: {
-            autolist: autolist
+            autolist: autolist,
           },
           extensions: {
-            imageDragging: new ImageDraggingDropGithub()
+            imageDragging: new ImageDraggingDropGithub(),
           },
           // fileDragging: {
           //   allowedTypes: ['jpg', 'png']
@@ -418,13 +422,13 @@
           octokit.orgs
             .checkMembership({
               org: owner,
-              username: userData.sso.github.username
+              username: userData.sso.github.username,
             })
-            .then(membershipResult => {
+            .then((membershipResult) => {
               console.log("membershipResult", membershipResult);
               enableCommitting();
             })
-            .catch(err => {
+            .catch((err) => {
               console.log("not member...", err);
             });
         }
@@ -435,7 +439,7 @@
         return decodeURIComponent(
           atob(str)
             .split("")
-            .map(function(c) {
+            .map(function (c) {
               return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
             })
             .join("")
@@ -451,114 +455,145 @@
         //   .then(tree => {
         //     console.log("TREE:", tree);
         //   });
-
+        console.log("💾githubRequest", githubRequest);
         octokit.repos
           .getContents(githubRequest)
-          .then(fileData => {
-            console.log("fileData", fileData);
+          .then((fileData) => {
+            // console.log("fileData", fileData);
             if (fileData.data.type === "file") {
-              var content = b64DecodeUnicode(fileData.data.content);
+              var data = b64DecodeUnicode(fileData.data.content);
+              content = data;
+              console.log("💾 data.content", content);
 
-              console.log("data.content", content);
+              if (data.indexOf("---\n") > 0) {
+                metadataHolder = data.split("---\n")[1];
+                data = data.split("---\n")[2];
+              } else {
+                metadataHolder = "";
+              }
 
-              fetch(fileData.data.download_url, {})
-                .then(function(response) {
-                  console.log("response", response);
-                  if (response.status === 404) {
-                    return content;
-                  } else {
-                    return response.text();
-                  }
-                })
-                .then(function(data) {
-                  // console.log("data", data);
-                  // console.log("not found?", data.indexOf('404: (Not Found)') > -1);
+              // fetch(fileData.data.download_url, {})
+              //   .then(function(response) {
+              //     // console.log("response", response);
+              //     if (response.status === 404) {
+              //       return content;
+              //     } else {
+              //       return response.text();
+              //     }
+              //   })
+              //   .then(function(data) {
+              // console.log("data", data);
+              // console.log("not found?", data.indexOf('404: (Not Found)') > -1);
 
-                  // if(data.indexOf('404') === 0) {
-                  //   data = content
-                  // }
+              // if(data.indexOf('404') === 0) {
+              //   data = content
+              // }
 
-                  console.log("data::", data);
+              // console.log("💾 data::", data);
 
-                  if (
-                    fileData.data.name.indexOf(".md") ===
-                    fileData.data.name.length - 3
-                  ) {
-                    document
-                      .getElementById("container")
-                      .classList.add("markdowncontainer");
-                    console.log("document.md2html", document.md2html);
-                    document.md2html(data).then(htmlBody => {
-                      console.log("htmlBody", htmlBody);
-                      document.getElementById("editable").innerHTML = htmlBody;
-                      enableEditor();
-                    });
-                  } else {
-                    originalHtml = data;
-
-                    var C = document.cheerio.load(data);
-                    var cnameRequest = Object.assign({}, githubRequest);
-                    cnameRequest.path = "CNAME";
-
-                    octokit.repos
-                      .getContents(cnameRequest)
-                      .then(CNAMEfileData => {
-                        console.log("CNAMEfileData", CNAMEfileData);
-
-                        return window.atob(CNAMEfileData.data.content);
-                      })
-                      .catch(function(err) {
-                        console.log("err", err);
-                        return undefined;
-                      })
-                      .then(function(cname) {
-                        CNAME = cname;
-                        console.log("cname", cname);
-                        var headers = C("head").html();
-                        var main = C("main").html();
-                        if (cname && headers && main) {
-                          headers = headers.replace(
-                            /href="\//g,
-                            `href="https://${cname}/`
-                          );
-                          main = main.replace(
-                            /src="\//g,
-                            `src="https://${cname}/`
-                          );
-                        } else {
-                          main = C.html();
-                        }
-
-                        document.getElementsByTagName("head")[0].innerHTML =
-                          headers +
-                          document.getElementsByTagName("head")[0].innerHTML;
-                        document.getElementById("editable").innerHTML = main;
-                        enableEditor();
-                      });
-
-                    // console.log('headers:', headers)
-
-                    // var scripts = C('script').toArray()
-                    // C('script').remove()
-
-                    // console.log('scripts', scripts)
-
-                    // console.log('cheerio:', C('body').html())
-                  }
-                  // document.getElementById("editable").innerHTML =
-                  //   fileData.data.name.indexOf(".md") ===
-                  //   fileData.data.name.length - 3
-                  //     ? document.md2html(data)
-                  //     : data;
-                  document.getElementById("commitMessage").style.display = "";
-                  document.getElementById("commitButton").style.display = "";
+              if (
+                fileData.data.name.indexOf(".md") ===
+                fileData.data.name.length - 3
+              ) {
+                document
+                  .getElementById("container")
+                  .classList.add("markdowncontainer");
+                console.log("document.md2html", document.md2html);
+                document.md2html(data).then((htmlBody) => {
+                  console.log("htmlBody", htmlBody);
+                  document.getElementById("editable").innerHTML = htmlBody;
+                  enableEditor();
                 });
+              } else {
+                originalHtml = data;
+
+                var C = document.cheerio.load(data);
+                var cnameRequest = Object.assign({}, githubRequest);
+                cnameRequest.path = "CNAME";
+
+                octokit.repos
+                  .getContents(cnameRequest)
+                  .then((CNAMEfileData) => {
+                    console.log("CNAMEfileData", CNAMEfileData);
+
+                    return window.atob(CNAMEfileData.data.content);
+                  })
+                  .catch(function (err) {
+                    console.log("err", err);
+                    return undefined;
+                  })
+                  .then(function (cname) {
+                    CNAME = cname;
+                    // CNAME = "https://www.idiomasconliza.com"
+                    console.log("cname", cname);
+                    var replace = { link: "href", script: "src", img: "src" };
+                    Object.keys(replace).forEach(function (tagType) {
+                      var links = C(tagType); //.children()
+                      console.log("😂", links);
+                      for (var i = 0; i < links.length; i++) {
+                        link = links[i];
+                        if (
+                          link.attribs[replace[tagType]] &&
+                          link.attribs[replace[tagType]].indexOf("http") !== 0
+                        ) {
+                          link.attribs[replace[tagType]] =
+                            CNAME +
+                            (link.attribs[replace[tagType]][0] === "/"
+                              ? ""
+                              : "/") +
+                            link.attribs[replace[tagType]];
+                          console.log(">>", link);
+                        }
+                      }
+                      console.log("🚦links>>", links);
+                    });
+
+                    var headers = C("head").html();
+                    var main = C("body").html();
+
+                    // if (cname && headers && main) {
+                    //   headers = headers.replace(
+                    //     /href="\//g,
+                    //     `href="https://${cname}/`
+                    //   );
+                    //   main = main.replace(
+                    //     /src="\//g,
+                    //     `src="https://${cname}/`
+                    //   );
+                    // } else {
+                    //   main = C.html();
+                    // }
+
+                    document.getElementsByTagName("head")[0].innerHTML =
+                      headers +
+                      document.getElementsByTagName("head")[0].innerHTML;
+                    document.getElementById("editable").innerHTML = main;
+                    enableEditor();
+                  });
+
+                // console.log('headers:', headers)
+
+                // var scripts = C('script').toArray()
+                // C('script').remove()
+
+                // console.log('scripts', scripts)
+
+                // console.log('cheerio:', C('body').html())
+              }
+              // document.getElementById("editable").innerHTML =
+              //   fileData.data.name.indexOf(".md") ===
+              //   fileData.data.name.length - 3
+              //     ? document.md2html(data)
+              //     : data;
+              document.getElementById("commitMessage").style.display = "";
+              document.getElementById("commitButton").style.display = "";
+              // });
             } else {
               document.getElementById("editable").style.display = "none";
               document.getElementById("filetree").style.display = "";
               var filetree = "<table class='filetreetable'>";
               document.getElementById("editable").innerHTML = fileData.data.map(
-                d => {
+                (d) => {
                   filetree +=
                     "<tr><th class='filetreename'>" +
                     (d.type === "file"
@@ -589,7 +624,7 @@
               document.getElementById("filetree").innerHTML = filetree;
             }
           })
-          .catch(err => {
+          .catch((err) => {
             console.log("Error:", err);
             enableEditor();
           })
@@ -607,20 +642,20 @@
       fetch("https://auth.qinab.com/user.json", {
         method: "GET",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
         credentials: "include",
-        cache: "no-cache"
+        cache: "no-cache",
       })
-        .then(function(response) {
+        .then(function (response) {
           return response.json();
         })
-        .then(function(data) {
+        .then(function (data) {
           console.log("data = ", data);
           userData = data;
           if (data.authenticated) {
             octokit = new Octokit({
-              auth: "token " + data.__sso.github.accessToken
+              auth: "token " + data.__sso.github.accessToken,
             });
             document.getElementById("github").style.display = "";
             document.getElementById("login").style.display = "none";
@@ -631,12 +666,12 @@
           }
           fetchContent();
         })
-        .catch(function(err) {
+        .catch(function (err) {
           console.error(err);
         });
 
       document.getElementById("path").innerHTML = path
-        .map(function(part, i) {
+        .map(function (part, i) {
           return i != 2 && i != 3
             ? '<a href="' +
                 (i == 0 || i == path.length - 1

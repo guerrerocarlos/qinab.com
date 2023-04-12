@@ -751,7 +751,7 @@ module.exports = function blockPlugin(availableBlocks = {}) {
 },{"space-separated-tokens":275}],4:[function(require,module,exports){
 var unified = require("unified");
 var parse = require("rehype-parse");
-var customPlugin = require("./customPlugin");
+// var customPlugin = require("./customPlugin");
 var rehype2remark = require("rehype-remark");
 var stringify = require("remark-stringify");
 var markdown = require("remark-parse");
@@ -761,7 +761,7 @@ document.md2html = function(str) {
   return new Promise((success, reject) => {
     unified()
       .use(markdown, { commonmark: true })
-      .use(customPlugin)
+      // .use(customPlugin)
       .use(remark2html)
       .process(str)
       .then(result => {
@@ -776,7 +776,7 @@ document.html2md = function(str) {
       .use(parse)
       .use(rehype2remark)
       .use(stringify)
-      .use(customPlugin)
+      // .use(customPlugin)
       .process(str)
       .then(result => {
         success(result.contents);

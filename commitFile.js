@@ -103,7 +103,7 @@ async function commitBlob(
     const updateRefResult = await octokit.git.updateRef({
       owner,
       repo,
-      ref: "heads/master",
+      ref: "heads/" + branch,
       sha: commitResult.data.sha
     });
 
