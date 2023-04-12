@@ -187,19 +187,21 @@
         var fullPath = githubRequest["path"];
         transformData(fullPath).then((data) => {
           console.log("got data", data);
+          console.log("metadataHolder", metadataHolder);
           if (metadataHolder.length > 0) {
             data = [medatadataHolder, data].join("---\n");
           }
-          commitBlob(
-            octokit,
-            branch,
-            githubRequest["path"],
-            data[data.length - 1] === "+"
-              ? data.slice(0, data.length - 1)
-              : data,
-            document.getElementById("commitMessage").value,
-            document.getElementById("commitButton")
-          );
+          console.log("DATA", data)
+          // commitBlob(
+          //   octokit,
+          //   branch,
+          //   githubRequest["path"],
+          //   data[data.length - 1] === "+"
+          //     ? data.slice(0, data.length - 1)
+          //     : data,
+          //   document.getElementById("commitMessage").value,
+          //   document.getElementById("commitButton")
+          // );
           console.log("Commit!", data);
         });
       }
@@ -465,12 +467,15 @@
               content = data;
               console.log("💾 data.content", content);
 
-              if (data.indexOf("---\n") > 0) {
-                metadataHolder = data.split("---\n")[1];
-                data = data.split("---\n")[2];
+              if (data.indexOf("---") > 0) {
+                console.log("🍪 HAS METADATA")
+                metadataHolder = data.split("---")[1];
+                data = data.split("---")[2];
               } else {
                 metadataHolder = "";
               }
+
+              console.log("🍪 metadataHolder", metadataHolder);
 
               // fetch(fileData.data.download_url, {})
               //   .then(function(response) {
