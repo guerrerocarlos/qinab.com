@@ -43,11 +43,11 @@ body {
 h1 {
   font-size: 60px;
   font-weight: bold;
-  text-align: center;
+  /* text-align: center; */
   margin-bottom: 40px;
-  padding-bottom: 40px;
+  /* padding-bottom: 40px; */
   letter-spacing: -2px;
-  border-bottom: 1px solid #dbdbdb;
+  /* border-bottom: 1px solid #dbdbdb; */
   line-height: 0.8;
 }
 
@@ -59,9 +59,6 @@ h3 {
 h4 {
   font-size: 26px;
   line-height: 32px;
-}
-
-p {
 }
 
 a {
@@ -181,13 +178,21 @@ blockquote {
 }
 
 .metadata {
-  width: 100%
+  width: 100%;
 }
 
 .vcenter {
-  vertical-align: middle
+  vertical-align: middle;
 }
 .user {
   margin-bottom: -14px;
   height: 40px;
+}
+
+p {
+  display: block;
+  margin-block-start: 1em;
+  margin-block-end: 1em;
+  margin-inline-start: 0px;
+  margin-inline-end: 0px;
 }

@@ -120,15 +120,30 @@
 }
 
 .filetreetable {
-    width: 100%;
+  width: 100%;
 }
 .filetreename {
-    text-align: left;
+  text-align: left;
 }
 .treelink {
-    text-decoration: none;
+  text-decoration: none;
 }
-.treesize { 
-    font-size: 0.8em;
-    color: gray;
+.treesize {
+  font-size: 0.8em;
+  color: gray;
+}
+
+#metadata {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+}
+
+.metadataSwitch {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
 }

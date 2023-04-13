@@ -46,6 +46,17 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/medium-editor-insert-plugin/2.5.0/css/medium-editor-insert-plugin.min.css"
     />
+
+    <script src="
+    https://cdn.jsdelivr.net/npm/ace-builds@1.16.0/src-min-noconflict/ace.js
+    "></script>
+    <link
+      href="
+https://cdn.jsdelivr.net/npm/ace-builds@1.16.0/css/ace.css
+"
+      rel="stylesheet"
+    />
+
     <!-- <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/medium-editor/5.23.3/css/medium-editor.min.css"
@@ -71,6 +82,9 @@
     <script src="/commitFile.js"></script>
   </head>
   <body>
+    <div class="metadataSwitch" id="metadataSwitch">
+      <button onclick="switchMetadata()">Metadata</button>
+    </div>
     <div id="topbar" class="center">
       <div>
         <img id="user" class="user" />
@@ -96,16 +110,12 @@
     <div id="container">
       <div id="filetree" class="filetree" style="display: none"></div>
       <div id="metadataText" class="">
-        <textarea
-          id="metadata"
-          cols="40"
-          rows="15"
-          class="metadata hidden"
-        ></textarea>
+        <div id="metadata"></div>
       </div>
       <div id="editable" class="editable"></div>
     </div>
     <script>
+      var aceEditor;
       var metadataHolder = "";
       var path = document.location.pathname.split("/");
       var originalHtml = "";
@@ -194,14 +204,14 @@
         transformData(fullPath).then((data) => {
           console.log("got data", data);
           console.log("metadataHolder", metadataHolder);
-          metadataHolder;
-          if (metadataHolder.length > 0) {
-            data = ["", document.getElementById("metadata").value, data].join(
-              "---\n"
-            );
+          let aceEditorValue = aceEditor.getValue();
+          console.log("aceEditorValue", aceEditorValue);
+          if (aceEditorValue.length > 0) {
+            data = ["---", aceEditorValue, "---", data].join("\n");
           }
           console.log("DATA", data);
-          let commitMessage = document.getElementById("commitMessage").value;
+          let commitMessage =
+            document.getElementById("commitMessage").innerHTML;
           commitBlob(
             octokit,
             branch,
@@ -488,12 +498,22 @@
               if (data.indexOf("---") >= 0) {
                 console.log("🍪 HAS METADATA");
                 metadataHolder = data.split("---\n")[1];
-                document.getElementById("metadata").value = metadataHolder;
+                document.getElementById("metadata").innerHTML = metadataHolder; // .split("\n").join("\n\r");
                 document.getElementById("metadata").classList.remove("hidden");
+                document.getElementById("metadata").style.display = "none";
+                // document.getElementById("metadataSwitch").classList.remove("hidden");
                 data = data.split("---\n")[2];
+
+                // setTimeout(() => {
+                //   console.log("hide editor!")
+                //   document.getElementById("metadata").style.display = ""
+                // }, 3000);
               } else {
                 metadataHolder = "";
               }
+              aceEditor = ace.edit("metadata");
+              aceEditor.session.setMode("ace/mode/yaml");
+              document.getElementById("metadata").style.display = "none";
 
               console.log("🍪 metadataHolder", metadataHolder);
 
@@ -723,6 +743,13 @@
           unit.shift();
         }
         return { size: size.toFixed(0), unit: unit.shift() };
+      }
+
+      function switchMetadata() {
+        document.getElementById("metadata").style.display =
+          document.getElementById("metadata").style.display === "none"
+            ? ""
+            : "none";
       }
     </script>
   </body>

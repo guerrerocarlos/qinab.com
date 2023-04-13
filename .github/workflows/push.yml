@@ -22,7 +22,7 @@ jobs:
           aws-region: us-east-2
 
       - name: Render HTML email templates
-        run: aws s3 sync . s3://$S3_BUCKET_NAME/ --delete --acl public-read
+        run: aws s3 sync . s3://$S3_BUCKET_NAME/ --delete --acl=public-read
 
       - name: Render HTML email templates
-        run: aws s3 sync . s3://www.$S3_BUCKET_NAME/ --delete --acl public-read
+        run: aws s3 sync . s3://www.$S3_BUCKET_NAME/ --delete --acl=public-read

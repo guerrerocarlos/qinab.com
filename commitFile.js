@@ -10,7 +10,9 @@ async function commitBlob(
   encoding
 ) {
   console.log("commitBlob:", { branch, path });
-
+  console.log("content ---> ")
+  console.log(content)
+  console.log("<--- content ")
   if (button) {
     button.disabled = "yeah";
     button.innerHTML = "...";
