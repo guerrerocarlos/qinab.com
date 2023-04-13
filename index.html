@@ -64,30 +64,29 @@
     <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
     <script src="https://unpkg.com/turndown-plugin-gfm/dist/turndown-plugin-gfm.js"></script>
 
-    <script src="/markdownEngine.js?v=3"></script>
-    <script src="/autolist.js?v=3"></script>
-    <script src="/octokit-rest.js?v=3"></script>
-    <script src="/cheerio.js?v=3"></script>
-    <script src="/commitFile.js?v=3"></script>
+    <script src="/markdownEngine.js"></script>
+    <script src="/autolist.js"></script>
+    <script src="/octokit-rest.js"></script>
+    <script src="/cheerio.js"></script>
+    <script src="/commitFile.js"></script>
   </head>
   <body>
     <div id="topbar" class="center">
-      <div id="path" class="inline"></div>
-      <div id="github" class="inline" style="display: none">
-        <div id="user" class="center inline user"></div>
-        <div id="commit" class="center inline">
+      <div>
+        <img id="user" class="user" />
+        <div id="commit" class="inline">
           <input
             id="commitMessage"
             type="text"
-            placeholder="commit message"
+            placeholder=""
             style="display: none"
           />
-          <button id="commitButton" style="display: none" disabled>
-            Commit
-          </button>
+          <button id="commitButton" style="display: none" disabled>Save</button>
           <button onclick="logout()">Logout</button>
         </div>
       </div>
+      <div id="path" class="inline"></div>
+      <div id="github" class="" style="display: none"></div>
       <div id="login" style="display: none">
         <button id="github-button" onclick="signin()">
           <i class="fa fa-github"></i> Sign in to edit
@@ -96,6 +95,14 @@
     </div>
     <div id="container">
       <div id="filetree" class="filetree" style="display: none"></div>
+      <div id="metadataText" class="">
+        <textarea
+          id="metadata"
+          cols="40"
+          rows="15"
+          class="metadata hidden"
+        ></textarea>
+      </div>
       <div id="editable" class="editable"></div>
     </div>
     <script>
@@ -134,11 +141,10 @@
           "Medium-meets-github.md",
         ];
 
-        // path = "fonemaplus/idiomasconliza.com/blob/www/public/index.html".split(
-        //   "/"
-        // );
-        // path = 'guerrerocarlos/blog.carlosguerrero.com/blob/master/_posts/2019-01-20-quick-start-guide.md'.split('/')
-        // document.location.pathname = path.join('/')
+        path =
+          "befluentschool/brain/blob/main/contenido/subscription/customer.subscription.created.md".split(
+            "/"
+          );
       }
       console.log("path", path);
 
@@ -188,20 +194,26 @@
         transformData(fullPath).then((data) => {
           console.log("got data", data);
           console.log("metadataHolder", metadataHolder);
+          metadataHolder;
           if (metadataHolder.length > 0) {
-            data = [medatadataHolder, data].join("---\n");
+            data = ["", document.getElementById("metadata").value, data].join(
+              "---\n"
+            );
           }
-          console.log("DATA", data)
-          // commitBlob(
-          //   octokit,
-          //   branch,
-          //   githubRequest["path"],
-          //   data[data.length - 1] === "+"
-          //     ? data.slice(0, data.length - 1)
-          //     : data,
-          //   document.getElementById("commitMessage").value,
-          //   document.getElementById("commitButton")
-          // );
+          console.log("DATA", data);
+          let commitMessage = document.getElementById("commitMessage").value;
+          commitBlob(
+            octokit,
+            branch,
+            githubRequest["path"],
+            data[data.length - 1] === "+"
+              ? data.slice(0, data.length - 1)
+              : data,
+            commitMessage.length > 0
+              ? commitMessage
+              : document.getElementById("commitMessage").placeholder,
+            document.getElementById("commitButton")
+          );
           console.log("Commit!", data);
         });
       }
@@ -461,16 +473,24 @@
         octokit.repos
           .getContents(githubRequest)
           .then((fileData) => {
-            // console.log("fileData", fileData);
+            console.log("fileData", fileData);
             if (fileData.data.type === "file") {
+              console.log("it's file");
               var data = b64DecodeUnicode(fileData.data.content);
-              content = data;
+              var content = data.toString();
               console.log("💾 data.content", content);
+              console.log("💾 data.indexOf('---')", data.indexOf("---"));
+              console.log(
+                "💾 data.indexOf('---') >= 0",
+                data.indexOf("---") >= 0
+              );
 
-              if (data.indexOf("---") > 0) {
-                console.log("🍪 HAS METADATA")
-                metadataHolder = data.split("---")[1];
-                data = data.split("---")[2];
+              if (data.indexOf("---") >= 0) {
+                console.log("🍪 HAS METADATA");
+                metadataHolder = data.split("---\n")[1];
+                document.getElementById("metadata").value = metadataHolder;
+                document.getElementById("metadata").classList.remove("hidden");
+                data = data.split("---\n")[2];
               } else {
                 metadataHolder = "";
               }
@@ -594,6 +614,7 @@
               document.getElementById("commitButton").style.display = "";
               // });
             } else {
+              console.log("it's folder");
               document.getElementById("editable").style.display = "none";
               document.getElementById("filetree").style.display = "";
               var filetree = "<table class='filetreetable'>";
@@ -639,8 +660,11 @@
       }
 
       function gotUserData(data) {
-        document.getElementById("user").innerHTML =
-          '<img src="' + data.sso.github.photos[0].value + '&s=100">';
+        console.log("gotUserData", data);
+        document.getElementById("user").src =
+          data.sso.github.photos[0].value + "&s=100";
+        document.getElementById("commitMessage").placeholder =
+          "Change by " + data.sso.github.displayName;
         // commitBlob(octokit)
       }
 

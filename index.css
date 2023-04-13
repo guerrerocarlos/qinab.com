@@ -175,3 +175,19 @@ blockquote {
 .jekyll-metadata-table {
   width: 90%;
 }
+
+.hidden {
+  display: none;
+}
+
+.metadata {
+  width: 100%
+}
+
+.vcenter {
+  vertical-align: middle
+}
+.user {
+  margin-bottom: -14px;
+  height: 40px;
+}
